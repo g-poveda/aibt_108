@@ -1,222 +1,264 @@
-# TP1: RCPSP - Practical Exercises
+# TP1: Resource-Constrained Project Scheduling Problem (RCPSP)
 
 ## Overview
 
-This practical work (TP) combines everything you've learned in Lessons 1 and 2 to solve Resource Constrained Project Scheduling Problems using both heuristic and exact methods.
+This practical work (TP) applies the concepts from Lessons 1 and 2 to the **Resource-Constrained Project Scheduling Problem (RCPSP)**. You will implement a complete CP-SAT solver and compare it against heuristic approaches.
+
+### What is RCPSP?
+See Lesson 1 :-).
 
 ## Learning Objectives
 
-By completing this TP, you will be able to:
+By completing this TP, you will:
 
-* **Implement** a CP-SAT model for RCPSP from scratch
-* **Use** the `AddCumulative` constraint for resource management
-* **Compare** heuristic solutions (SGS) with optimal solutions (CP)
-* **Handle** real-world constraints (calendars, skills, precedences)
-* **Analyze** solution quality and solving performance
-* **[Bonus]** Model and solve multi-mode RCPSP
+1. **Model** RCPSP using CP-SAT constraints
+2. **Implement** a complete CP-SAT solver using the discrete-optimization framework
+3. **Compare** heuristic vs exact approaches through systematic benchmarking
+4. **Analyze** trade-offs between solution quality and computation time
 
-## Prerequisites
+## The RCPSP Problem
 
-**Required:**
-- Lesson 1: RCPSP Introduction + SGS implementation
-- Lesson 2: CPSat basics + Job Shop solver
+### Problem Definition
 
-**Recommended:**
-- Understanding of cumulative resource constraints
-- Familiarity with the `discrete-optimization` library
+<table border="1">
+<tr bgcolor="#e6f7ff">
+  <th style="color:black"><b>Given</b></th>
+  <th style="color:black"><b>Find</b></th>
+  <th style="color:black"><b>Minimize</b></th>
+</tr>
+<tr>
+  <td>
+    • Set of tasks with durations<br>
+    • Precedence constraints (task graph)<br>
+    • Renewable resources with capacities<br>
+    • Resource consumption per task
+  </td>
+  <td>
+    • Start time for each task<br>
+    • Task execution schedule
+  </td>
+  <td>
+    • Project makespan<br>
+    (completion time)
+  </td>
+</tr>
+</table>
+
+### Constraints
+
+<table border="1">
+<tr bgcolor="#fff7e6">
+  <th style="color:black"><b>Type</b></th>
+  <th style="color:black"><b>Description</b></th>
+</tr>
+<tr>
+  <td><b>1. Precedence</b></td>
+  <td>If task A → task B in precedence graph, then: end[A] ≤ start[B]</td>
+</tr>
+<tr>
+  <td><b>2. Resource Capacity</b></td>
+  <td>
+    At any time t, sum of resource consumption by active tasks ≤ resource capacity
+  </td>
+</tr>
+</table>
+
+### Example: Small Project
+
+**Tasks:**
+- Task 1: Duration 3, needs 2 workers
+- Task 2: Duration 2, needs 1 worker
+- Task 3: Duration 4, needs 2 workers
+- Task 4: Duration 1, needs 1 worker
+
+**Precedences:** 1→3, 2→4
+
+**Resources:** 3 workers available
+
+**Question:** Can Task 1 and Task 2 run in parallel?
+- At t=0: Task 1 (2W) + Task 2 (1W) = 3W ≤ 3W capacity → **Yes!**
+
+**Makespan:** With optimal scheduling considering precedences and resource constraints.
 
 ## TP Structure
 
-### Part 1: CP-SAT Model for RCPSP ⭐
+### Part 1: CP-SAT Solver Implementation
 **File:** `exercises_part1.py`
 
-Implement a complete CP-SAT solver for standard RCPSP:
-- Decision variables (starts, ends, intervals)
+Implement a complete CP-SAT solver for RCPSP using the `discrete-optimization` framework.
+
+**What you'll build:**
+- Decision variables (start times, intervals)
 - Precedence constraints
-- Cumulative resource constraints
+- Resource capacity constraints
 - Objective function (minimize makespan)
-- Solution extraction
+- Solution extraction from CP-SAT solver
 
-**Challenge:** Unlike Job Shop (NoOverlap), RCPSP uses `AddCumulative` for resources with capacity > 1.
-
-### Part 2: Comparing Heuristics vs CP 📊
+### Part 2: Benchmarking and Comparison Study
 **File:** `exercises_part2.py`
 
-Benchmark different solving approaches:
-- SGS with various priority rules
-- Random search
-- CP-SAT exact solver
-- Hybrid approaches (SGS + CP warmstart)
+Compare different solving approaches on multiple instances:
+- **Heuristics:** SGS with different priority rules
+- **Exact:** CP-SAT solver
+- **Analysis:** Quality vs computation time trade-offs
 
-**Goal:** Understand trade-offs between solution quality and computation time.
+**Deliverables:**
+- Benchmark results on multiple instances (j30, j60, j120)
+- Visualization comparing approaches
+- Head-to-head comparison matrix
+- CSV export of results
 
-### Part 3: Advanced RCPSP Features 🚀
-**File:** `exercises_part3.py` (Bonus)
 
-Handle real-world extensions:
-- Resource calendars (availability varies over time)
-- Multi-skill resources (tasks require specific skills)
-- Multi-mode RCPSP (tasks have alternative execution modes)
-- Time windows and deadlines
+## Files
 
-## Files in this TP
+### Core Files
+- **`exercises_part1.py`**: CP-SAT solver implementation (complete the TODOs)
+- **`exercises_part2.py`**: Benchmarking study (complete the TODOs)
+- **`utils.py`**: Helper functions (instance loading, validation, visualization)
 
-```
-tp1_rcpsp/
-├── README.md                    # This file
-├── problem_definition.py        # RCPSP problem classes
-├── exercises_part1.py           # CP model implementation
-├── exercises_part2.py           # Benchmarking
-├── exercises_part3.py           # Advanced features (bonus)
-├── solutions_part1.py           # Reference: CP model
-├── solutions_part2.py           # Reference: Benchmarking
-├── solutions_part3.py           # Reference: Advanced features
-├── utils.py                     # Utility functions
-└── test_instances/              # Test problems
-    ├── small/                   # 10-30 tasks
-    ├── medium/                  # 30-60 tasks
-    └── large/                   # 60-120 tasks
-```
+### Data
+RCPSP instances are loaded from **PSPLib** via the `discrete-optimization` library:
+- `j301_X`: 30 tasks, 4 resources (quick testing)
+- `j601_X`: 60 tasks, 4 resources (realistic evaluation)
+- `j1201_X`: 120 tasks, 4 resources (challenging instances)
 
-## How to Work on this TP
+## How to Run
 
-### Step 1: Understand the Problem
-```python
-# Load and explore a test instance
-from problem_definition import RcpspProblemCP
-from utils import load_instance, print_problem_stats
-
-problem = load_instance("test_instances/small/j30_1.sm")
-print_problem_stats(problem)
-```
-
-### Step 2: Complete Part 1 (CP Model)
 ```bash
-# Implement the CP-SAT solver
-python tp1_rcpsp/exercises_part1.py
+# From the repo root (aibt_108/)
 
-# Test your implementation
-# Compare with reference solution
-python tp1_rcpsp/solutions_part1.py
+# 1. Part 1: Implement and test CP-SAT solver
+uv run python -m scheduling.tp1_rcpsp.exercises_part1
+# 2. Part 2: Run benchmark study
+uv run python -m scheduling.tp1_rcpsp.exercises_part2
 ```
 
-### Step 3: Complete Part 2 (Benchmarking)
-```bash
-# Run experiments comparing methods
-python tp1_rcpsp/exercises_part2.py
-```
 
-### Step 4: [Optional] Advanced Features
-```bash
-# Tackle the bonus exercises
-python tp1_rcpsp/exercises_part3.py
-```
+## Exercise Structure
+
+### Part 1: CP-SAT Solver (exercises_part1.py)
+
+Complete the TODOs to build your solver:
+
+**TODO 1:** Create decision variables (start times, intervals)
+**TODO 2:** Add precedence constraints
+**TODO 3:** Add resource capacity constraints
+**TODO 4:** Define objective function
+**TODO 5:** Extract and return solution
+
+### Part 2: Benchmarking Study (exercises_part2.py)
+
+Complete the benchmarking framework:
+
+**TODO 1:** Configure benchmark instances and solvers
+**TODO 2:** Run experiments with time limits
+**TODO 3:** Generate comparison plots
+**TODO 4:** Create head-to-head comparison matrix
+
+**Analysis Focus:** Compare CP-SAT exact solver against SGS heuristics in terms of:
+- Solution quality (makespan)
+- Computation time
+- Success rate (finding feasible solutions)
 
 ## Test Instances
 
-We provide several difficulty levels:
+<table border="1">
+<tr>
+  <th>Instance Family</th>
+  <th>Size</th>
+  <th>Typical Solve Time</th>
+  <th>Use For</th>
+</tr>
+<tr>
+  <td><b>j301_X</b></td>
+  <td>30 tasks, 4 resources</td>
+  <td>< 10 seconds</td>
+  <td>Development, debugging</td>
+</tr>
+<tr>
+  <td><b>j601_X</b></td>
+  <td>60 tasks, 4 resources</td>
+  <td>< 60 seconds</td>
+  <td>Realistic evaluation</td>
+</tr>
+<tr>
+  <td><b>j1201_X</b></td>
+  <td>120 tasks, 4 resources</td>
+  <td>> ? </td>
+  <td>Scalability testing</td>
+</tr>
+</table>
 
-### Small (Quick testing)
-- **j30_X.sm**: 30 tasks, 4 resources
-- **Optimal**: Usually found in < 10 seconds
-- **Use for:** Development and debugging
+**Note:** Instances are automatically downloaded from PSPLib via `discrete-optimization` on first use.
 
-### Medium (Realistic)
-- **j60_X.sm**: 60 tasks, 4 resources
-- **Near-optimal**: Often found in < 60 seconds
-- **Use for:** Evaluation and comparison
+## Connections to Course Content
 
-### Large (Challenge)
-- **j120_X.sm**: 120 tasks, 4 resources
-- **Hard instances**: May require > 5 minutes
-- **Use for:** Testing scalability
+### From Lesson 1 (RCPSP Introduction)
+- Serial Generation Scheme (SGS) heuristic
+- Priority rules for task ordering
+- Resource feasibility checking
 
-## Deliverables
+### From Lesson 2 (CP-SAT + Job Shop)
+- Interval variables for scheduling
+- Precedence constraints
+- Solution extraction from CP-SAT
+- Using `discrete-optimization` framework
 
-### Minimum (Required)
-- ✅ Working CP-SAT solver (Part 1)
-- ✅ Solution on at least 3 test instances
-- ✅ Brief analysis comparing SGS vs CP
+### New in This TP
+- Benchmarking methodology
+- Systematic comparison of exact vs heuristic approaches
+- Performance analysis (quality vs computation time)
 
-### Complete (Recommended)
-- ✅ All of the above
-- ✅ Benchmarking results (Part 2)
-- ✅ Performance analysis (time vs quality)
+## Expected Outputs
 
-### Advanced (Bonus)
-- ✅ All of the above
-- ✅ Advanced features implementation (Part 3)
-- ✅ Multi-mode RCPSP solver
+### Part 1: Working CP-SAT Solver
 
-## Evaluation Criteria
+**Code Requirements:**
+- Complete implementation of `RcpspCpSatSolver` class
+- All TODOs completed with working code
+- Solutions must pass `problem.satisfy(solution)` validation check
 
-1. **Correctness** (40%): Does your CP model produce valid solutions?
-2. **Completeness** (30%): Are all constraints properly implemented?
-3. **Analysis** (20%): Quality of your comparison and insights
-4. **Code Quality** (10%): Clarity, documentation, structure
+**Documentation Requirements:**
+Your code should include comments explaining:
+- **Variable roles**: What each decision variable represents (starts, ends, intervals)
+- **Constraint types**: Purpose of each constraint added to the model
+  - Precedence constraints
+  - Resource capacity constraints
+  - Objective function
+- **Key modeling choice**: How RCPSP differs from Job Shop in terms of resource constraints
 
-## Tips for Success
+**Testing:**
+- Run your solver on at least 3 instances (j301_1, j301_2, j301_3)
+- Verify solutions with `problem.satisfy(solution) == True`
+- Compare your results with reference implementation
 
-### 🎯 CP Modeling Tips
-- Start with a simple instance (j30_1.sm)
-- Test each constraint type separately
-- Use the solution checker to validate
-- Remember: `AddCumulative` ≠ `AddNoOverlap`!
+### Part 2: Benchmark Results
 
-### 📊 Benchmarking Tips
-- Run multiple times for statistical significance
-- Track both time and solution quality
-- Visualize results (Gantt charts, tables)
-- Consider time limits for fair comparison
+**Output Files:**
+- `tp1_benchmark_results.csv`: Raw data for all experiments
+- `benchmark_results_main.png`: Performance plots showing:
+  - Makespan comparison across solvers
+  - Computation time per instance
+  - Optimality gap analysis
+- `benchmark_results_h2h.png`: Head-to-head comparison matrix
 
-### 🚀 Advanced Tips
-- Multi-mode: One interval per mode + selection logic
-- Calendars: Adjust resource availability arrays
-- Skills: Add matching constraints between tasks and resources
+**Written Analysis:**
+Provide a detailed overview of solver performance including:
+- **Quality comparison**: Which solver produces better solutions? By how much?
+- **Speed comparison**: Computation time differences across instance sizes
+- **Scalability**: How does performance change with instance size (j30 vs j60 vs j120)?
 
-## Common Pitfalls
+**Recommendations:**
+Based on your results, provide recommendations on:
+- When to use CP-SAT exact solver vs heuristics
+- Which SGS priority rule performs best
+- Trade-offs between solution quality and computation time
+- Suggested approach for real-world scenarios (small projects vs large projects)
 
-❌ **Using NoOverlap instead of AddCumulative**
-Resources in RCPSP have capacity > 1!
+## References
 
-❌ **Forgetting to update resource availability**
-When extracting solutions, check resource usage over time.
-
-❌ **Not setting time limits**
-CP solvers can run forever - always set `max_time_in_seconds`.
-
-❌ **Comparing incomparable methods**
-SGS with 1000 iterations vs CP with 10s? Be fair!
-
-## Resources
-
-### RCPSP Data Format
-- [PSPLib](http://www.om-db.wi.tum.de/psplib/)
-- [Standard benchmark instances](http://www.om-db.wi.tum.de/psplib/getdata.cgi)
-
-### OR-Tools Documentation
-- [AddCumulative constraint](https://developers.google.com/optimization/scheduling/rcpsp)
-- [Scheduling examples](https://developers.google.com/optimization/scheduling)
-
-### Previous Lessons
-- Lesson 1: `../lesson1_rcpsp/`
-- Lesson 2: `../lesson2_cpsat/`
-
-## Expected Time
-
-- **Part 1 (CP Model)**: 2-3 hours
-- **Part 2 (Benchmarking)**: 1-2 hours
-- **Part 3 (Advanced)**: 2-4 hours (bonus)
-
-**Total:** 3-5 hours minimum, up to 9 hours with all bonuses.
-
-## Getting Help
-
-1. Review Lesson 2 (Job Shop) - similar structure!
-2. Check the utilities in `utils.py`
-3. Look at solution validation errors carefully
-4. Compare your output with `solutions_partX.py`
+- **PSPLib**: [http://www.om-db.wi.tum.de/psplib/](http://www.om-db.wi.tum.de/psplib/)
+- **OR-Tools Documentation**: [Scheduling with OR-Tools](https://developers.google.com/optimization/scheduling)
+- **discrete-optimization**: [GitHub Repository](https://github.com/airbus/discrete-optimization)
 
 ---
-
-Good luck! Remember: The goal is to learn, not just to finish. Take time to understand each constraint. 🎓

@@ -116,7 +116,7 @@ def main():
 
     print("Next Steps:")
     print("  1. Try the exercises in exercises.py")
-    print("  2. Implement a greedy heuristic")
+    print("  2. Implement a greedy heuristic (optional)")
     print("  3. Implement a CP-SAT solver")
     print("  4. Compare different solving approaches\n")
 

@@ -17,10 +17,10 @@ The Resource Constrained Project Scheduling Problem (RCPSP) consists of:
 
 - **M activities/tasks** with precedence constraints
 - If activity j is a successor of activity i, then i must complete before j can start
-- **K renewable resources**, each resource k has R_k units available
+- **K renewable resources**, each resource k has $R_k$ units available
 - Each activity requires specific resources during execution
 - Resource capacity constraints must be respected at all times
-- Each activity j takes d_j time units to complete
+- Each activity $j$ takes $d_j$ time units to complete
 - **Objective**: Minimize the makespan (project completion time)
 
 ### Variants

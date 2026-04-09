@@ -22,9 +22,9 @@ Objective:
 - Minimize the cycle time (makespan)
 
 Constraints:
-1. Precedence: Predecessor tasks must finish before successors
-2. Resource Capacity: Resource consumption at each station cannot exceed allocation
-3. No overlap: Tasks on the same station cannot overlap in time
+1. Precedence: Predecessor tasks must finish before successors (or be assigned to earlier stations)
+2. Resource Capacity: Cumulative resource consumption at each station cannot exceed allocation
+   (tasks CAN overlap as long as combined resource usage stays within capacity)
 """
 
 from typing import Dict, List, Tuple, Optional, Hashable

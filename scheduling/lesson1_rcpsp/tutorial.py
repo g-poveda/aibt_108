@@ -19,6 +19,7 @@ from discrete_optimization.datasets import fetch_data_from_psplib
 from discrete_optimization.rcpsp.problem import RcpspProblem
 from discrete_optimization.rcpsp.parser import get_data_available, parse_file
 from discrete_optimization.rcpsp.solvers.cpm import CpmRcpspSolver
+from matplotlib import pyplot as plt
 
 from scheduling.utils.visualization import plot_predecessors_graph, plot_gantt_chart
 from scheduling.utils.rcpsp_utils import compute_predecessors, get_task_durations
@@ -344,7 +345,7 @@ def visualize_solution(rcpsp_problem: RcpspProblem):
 
     # Visualize (uncomment to show plots)
     print("   💡 To visualize this solution, uncomment the plotting lines in the code")
-    # plot_gantt_chart(rcpsp_problem, solution)
+    plot_gantt_chart(rcpsp_problem, solution)
 
 
 # =============================================================================
@@ -391,7 +392,7 @@ def main():
     print("   → Complete exercises.py to implement your own SGS")
     print("   → Try different priority rules and compare results")
     print("   → Move on to Lesson 2: Constraint Programming\n")
-
+    plt.show()
 
 if __name__ == "__main__":
     main()

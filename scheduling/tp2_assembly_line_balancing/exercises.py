@@ -29,6 +29,7 @@ from scheduling.tp2_assembly_line_balancing.utils import (
     create_precedence_example,
     create_simple_instance,
     visualize_solution,
+    visualize_interactive_flow,
     print_solution_info,
 )
 from discrete_optimization.generic_tools.ortools_cpsat_tools import OrtoolsCpSatSolver
@@ -254,12 +255,12 @@ def run_cp_solver():
             eval_dict = problem.evaluate(solution)
             is_valid = problem.satisfy(solution)
 
-            print(f"\n✓ Solution found!")
+            print(f"\n[OK] Solution found!")
             print(f"  Cycle Time: {solution.cycle_time}")
             print(f"  Valid: {is_valid}")
 
             if not is_valid:
-                print("\n❌ WARNING: Solution is not valid!")
+                print("\n[ERROR] WARNING: Solution is not valid!")
                 print("   Violations:")
                 for key, value in eval_dict.items():
                     if 'penalty' in key and value > 0:
@@ -268,13 +269,31 @@ def run_cp_solver():
             # Print detailed info
             print_solution_info(problem, solution)
 
-            # Uncomment to visualize:
-            # visualize_solution(problem, solution)
+            # Static visualization
+            print("\nGenerating static Gantt chart...")
+            visualize_solution(problem, solution, show=True)
+
+            # Interactive visualization
+            if is_valid:
+                print("\n" + "="*80)
+                print("  INTERACTIVE ASSEMBLY LINE FLOW VISUALIZATION")
+                print("="*80)
+                print("\nCreating interactive animation...")
+                print("   Use the time slider to explore the assembly line flow!")
+                print("   - See products moving through stations")
+                print("   - Track active tasks at each time")
+                print("   - Monitor resource usage per station")
+                print("   - Red borders indicate constraint violations\n")
+
+                try:
+                    visualize_interactive_flow(problem, solution)
+                except Exception as viz_error:
+                    print(f"[Warning] Visualization error: {viz_error}")
         else:
-            print("\n✗ No solution found")
+            print("\n[X] No solution found")
 
     except NotImplementedError as e:
-        print(f"\n❌ {e}")
+        print(f"\n[ERROR] {e}")
         print("\nComplete the TODO sections in the RCALBPCpSatSolver class.")
 
 
@@ -285,7 +304,7 @@ def main():
     print("  TP2 - PART 1: CP-SAT MODEL FOR RC-ALBP")
     print("="*80)
 
-    print("\n📝 Complete the TODO sections in RCALBPCpSatSolver:")
+    print("\nTODO: Complete the TODO sections in RCALBPCpSatSolver:")
     print("   1. Create task assignment variables")
     print("   2. Create start time and interval variables")
     print("   3. Add station precedence constraints")

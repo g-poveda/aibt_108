@@ -13,12 +13,15 @@ This script:
 
 import time
 import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 from typing import Dict, List, Optional
+from pathlib import Path
 
 from discrete_optimization.generic_tools.cp_tools import ParametersCp
 
 from scheduling.tp2_assembly_line_balancing.problem import RCALBPProblem, RCALBPSolution
-from scheduling.tp2_assembly_line_balancing.utils import load_rcpsp_as_albp
+from scheduling.tp2_assembly_line_balancing.utils import load_rcpsp_as_albp, visualize_interactive_flow
 from scheduling.tp2_assembly_line_balancing.solutions import RCALBPCpSatSolver
 
 
@@ -109,7 +112,7 @@ def benchmark_instance(
             result["gap"] = gap
             result["gap_percent"] = (gap / best_bound * 100) if best_bound > 0 else 0
 
-            print(f"\n✓ Solution found!")
+            print(f"\n[OK] Solution found!")
             print(f"  Cycle time: {solution.cycle_time}")
             print(f"  Best bound: {best_bound}")
             print(f"  Solve time: {solve_time:.2f}s")
@@ -119,12 +122,12 @@ def benchmark_instance(
 
         else:
             result["status"] = "NO_SOLUTION"
-            print("\n✗ No solution found within time limit")
+            print("\n[X] No solution found within time limit")
 
     except Exception as e:
         result["status"] = "ERROR"
         result["error"] = str(e)
-        print(f"\n✗ Error: {e}")
+        print(f"\n[X] Error: {e}")
 
     return result
 
@@ -252,6 +255,231 @@ def analyze_results(df: pd.DataFrame):
     print("\n" + "="*80)
 
 
+def plot_results(df: pd.DataFrame, save_plots: bool = True):
+    """
+    Create visualization plots from benchmark results.
+
+    Args:
+        df: DataFrame with benchmark results
+        save_plots: If True, save plots to files
+    """
+    print("\n" + "="*80)
+    print("  CREATING VISUALIZATION PLOTS")
+    print("="*80 + "\n")
+
+    # Filter valid solutions
+    valid_df = df[df['is_valid'] == True].copy()
+
+    if valid_df.empty:
+        print("[!]  No valid solutions to plot!")
+        return
+
+    # Create figure with multiple subplots
+    fig = plt.figure(figsize=(16, 10))
+
+    # =========================================================================
+    # 1. Cycle Time vs Number of Stations (Main Result!)
+    # =========================================================================
+    ax1 = plt.subplot(2, 3, 1)
+
+    # Group by instance and nb_stations
+    for instance in valid_df['instance'].unique():
+        instance_data = valid_df[valid_df['instance'] == instance]
+        if len(instance_data) > 0:
+            # Sort by number of stations
+            instance_data = instance_data.sort_values('nb_stations')
+
+            ax1.plot(
+                instance_data['nb_stations'],
+                instance_data['cycle_time'],
+                marker='o',
+                linewidth=2,
+                markersize=8,
+                label=instance,
+                alpha=0.7
+            )
+
+    ax1.set_xlabel('Number of Stations', fontsize=11)
+    ax1.set_ylabel('Cycle Time', fontsize=11)
+    ax1.set_title('Cycle Time vs Number of Stations', fontsize=12, fontweight='bold')
+    ax1.legend(fontsize=8, loc='best')
+    ax1.grid(True, alpha=0.3)
+
+    # =========================================================================
+    # 2. Solve Time vs Number of Stations
+    # =========================================================================
+    ax2 = plt.subplot(2, 3, 2)
+
+    # Average solve time per station count
+    if 'nb_stations' in valid_df.columns and 'solve_time' in valid_df.columns:
+        station_solve_time = valid_df.groupby('nb_stations')['solve_time'].agg(['mean', 'std'])
+
+        ax2.bar(
+            station_solve_time.index,
+            station_solve_time['mean'],
+            yerr=station_solve_time['std'],
+            color='steelblue',
+            alpha=0.7,
+            capsize=5
+        )
+
+        ax2.set_xlabel('Number of Stations', fontsize=11)
+        ax2.set_ylabel('Average Solve Time (s)', fontsize=11)
+        ax2.set_title('Solve Time vs Stations', fontsize=12, fontweight='bold')
+        ax2.grid(axis='y', alpha=0.3)
+
+    # =========================================================================
+    # 3. Optimality Rate vs Stations
+    # =========================================================================
+    ax3 = plt.subplot(2, 3, 3)
+
+    if 'is_optimal' in valid_df.columns:
+        optimal_rate = valid_df.groupby('nb_stations')['is_optimal'].mean() * 100
+
+        bars = ax3.bar(
+            optimal_rate.index,
+            optimal_rate.values,
+            color='lightgreen',
+            alpha=0.7
+        )
+
+        # Add percentage labels
+        for bar in bars:
+            height = bar.get_height()
+            ax3.text(
+                bar.get_x() + bar.get_width()/2., height,
+                f'{height:.0f}%',
+                ha='center', va='bottom', fontsize=9
+            )
+
+        ax3.set_xlabel('Number of Stations', fontsize=11)
+        ax3.set_ylabel('Optimality Rate (%)', fontsize=11)
+        ax3.set_title('% of Optimal Solutions by Stations', fontsize=12, fontweight='bold')
+        ax3.set_ylim(0, 110)
+        ax3.grid(axis='y', alpha=0.3)
+
+    # =========================================================================
+    # 4. Instance Size Impact (Cycle Time vs Tasks)
+    # =========================================================================
+    ax4 = plt.subplot(2, 3, 4)
+
+    if 'nb_tasks' in valid_df.columns:
+        # Scatter plot: tasks vs cycle time, colored by stations
+        for nb_stations in sorted(valid_df['nb_stations'].unique()):
+            station_data = valid_df[valid_df['nb_stations'] == nb_stations]
+
+            ax4.scatter(
+                station_data['nb_tasks'],
+                station_data['cycle_time'],
+                s=100,
+                alpha=0.6,
+                label=f'{nb_stations} stations'
+            )
+
+        ax4.set_xlabel('Number of Tasks', fontsize=11)
+        ax4.set_ylabel('Cycle Time', fontsize=11)
+        ax4.set_title('Instance Size Impact', fontsize=12, fontweight='bold')
+        ax4.legend(fontsize=9)
+        ax4.grid(True, alpha=0.3)
+
+    # =========================================================================
+    # 5. Optimality Gap Distribution
+    # =========================================================================
+    ax5 = plt.subplot(2, 3, 5)
+
+    if 'gap_percent' in valid_df.columns:
+        gap_data = valid_df['gap_percent'].dropna()
+
+        if len(gap_data) > 0:
+            ax5.hist(gap_data, bins=20, color='coral', alpha=0.7, edgecolor='black')
+
+            ax5.set_xlabel('Optimality Gap (%)', fontsize=11)
+            ax5.set_ylabel('Frequency', fontsize=11)
+            ax5.set_title('Distribution of Optimality Gaps', fontsize=12, fontweight='bold')
+            ax5.grid(axis='y', alpha=0.3)
+
+            # Add mean line
+            mean_gap = gap_data.mean()
+            ax5.axvline(mean_gap, color='red', linestyle='--', linewidth=2, label=f'Mean: {mean_gap:.1f}%')
+            ax5.legend(fontsize=9)
+
+    # =========================================================================
+    # 6. Performance Summary Heatmap
+    # =========================================================================
+    ax6 = plt.subplot(2, 3, 6)
+
+    if 'instance' in valid_df.columns and 'nb_stations' in valid_df.columns:
+        # Create pivot table: instance x stations -> cycle_time
+        pivot = valid_df.pivot_table(
+            values='cycle_time',
+            index='instance',
+            columns='nb_stations',
+            aggfunc='mean'
+        )
+
+        if not pivot.empty:
+            im = ax6.imshow(pivot.values, cmap='YlOrRd', aspect='auto')
+
+            ax6.set_xticks(np.arange(len(pivot.columns)))
+            ax6.set_yticks(np.arange(len(pivot.index)))
+            ax6.set_xticklabels(pivot.columns, fontsize=9)
+            ax6.set_yticklabels(pivot.index, fontsize=9)
+
+            # Add colorbar
+            cbar = plt.colorbar(im, ax=ax6)
+            cbar.set_label('Cycle Time', rotation=270, labelpad=20, fontsize=10)
+
+            # Add text annotations
+            for i in range(len(pivot.index)):
+                for j in range(len(pivot.columns)):
+                    if not np.isnan(pivot.values[i, j]):
+                        text = ax6.text(
+                            j, i, f'{pivot.values[i, j]:.0f}',
+                            ha="center", va="center", color="black", fontsize=8
+                        )
+
+            ax6.set_xlabel('Number of Stations', fontsize=11)
+            ax6.set_ylabel('Instance', fontsize=11)
+            ax6.set_title('Cycle Time Heatmap', fontsize=12, fontweight='bold')
+
+    plt.tight_layout()
+
+    if save_plots:
+        plot_path = Path(__file__).parent / 'benchmark_plots.png'
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        print(f"[OK] Plots saved to: {plot_path}")
+
+    plt.show()
+
+
+def create_interactive_visualization(
+    problem: RCALBPProblem,
+    solution: RCALBPSolution,
+    instance_name: str = "example"
+):
+    """
+    Create and display interactive visualization of solution.
+
+    Args:
+        problem: Problem instance
+        solution: Solution to visualize
+        instance_name: Name for the instance
+    """
+    print(f"\n{'='*80}")
+    print(f"  INTERACTIVE VISUALIZATION: {instance_name}")
+    print(f"{'='*80}\n")
+
+    print("Creating interactive assembly line flow animation...")
+    print("   Use the time slider to see products flowing through stations!")
+    print("   Watch resource usage and constraint violations in real-time.\n")
+
+    try:
+        visualize_interactive_flow(problem, solution)
+        print("\n[Done] Visualization displayed\n")
+    except Exception as e:
+        print(f"[Error] Could not create visualization: {e}\n")
+
+
 def main():
     """Main benchmarking function."""
 
@@ -259,7 +487,7 @@ def main():
     print("  TP2 - RC-ALBP BENCHMARK")
     print("="*80)
 
-    # Define test instances (start small!)
+    # Define test instances
     instances = [
         "j301_1", "j301_2", "j301_3",  # 30 tasks, 4 resources
     ]
@@ -267,14 +495,14 @@ def main():
     nb_stations_list = [2, 3, 4]
     time_limit = 30  # seconds per instance
 
-    print("\n📊 This script will:")
+    print("\n-> This script will:")
     print("   1. Load RCPSP instances from PSPLib")
     print("   2. Convert to RC-ALBP problems")
     print("   3. Solve with CP-SAT")
     print("   4. Collect results in DataFrame")
     print("   5. Save to CSV for analysis")
 
-    print("\n⚠️  IMPORTANT: Implement the solver in solutions.py first!")
+    print("\n[!]  IMPORTANT: Implement the solver in solutions.py first!")
     print("   The solver must be working to run this benchmark.\n")
 
     # Run benchmark
@@ -289,15 +517,63 @@ def main():
         # Analyze results
         analyze_results(df)
 
+        # Create plots
+        plot_results(df, save_plots=True)
+
         # Display DataFrame
         print("\nDetailed Results:")
         print(df.to_string(index=False))
 
-        print("\n💡 Next steps:")
-        print("   - Analyze results in Jupyter notebook")
-        print("   - Plot cycle time vs instance size")
-        print("   - Compare different station configurations")
-        print("   - Identify which instances are hardest")
+        # Create interactive visualization for one instance
+        print("\n" + "="*80)
+        print("  INTERACTIVE VISUALIZATION DEMO")
+        print("="*80)
+
+        # Pick first valid solution for interactive demo
+        valid_results = df[df['is_valid'] == True]
+        if len(valid_results) > 0:
+            demo_row = valid_results.iloc[0]
+            print(f"\nCreating interactive visualization for: {demo_row['instance']}")
+            print(f"  Stations: {demo_row['nb_stations']}")
+            print(f"  Cycle Time: {demo_row['cycle_time']}")
+
+            try:
+                # Recreate problem and solve
+                demo_problem = load_rcpsp_as_albp(
+                    instance_name=demo_row['instance'],
+                    nb_stations=demo_row['nb_stations'],
+                    seed=42
+                )
+
+                demo_solver = RCALBPCpSatSolver(demo_problem)
+                params_cp = ParametersCp.default_cpsat()
+                demo_result = demo_solver.solve(
+                    parameters_cp=params_cp,
+                    time_limit=time_limit,
+                    ortools_cpsat_solver_kwargs={"log_search_progress": False}
+                )
+
+                if len(demo_result) > 0:
+                    demo_solution = demo_result.get_best_solution()
+                    create_interactive_visualization(
+                        demo_problem,
+                        demo_solution,
+                        instance_name=demo_row['instance']
+                    )
+                else:
+                    print("[!]  Could not recreate solution for demo")
+
+            except Exception as e:
+                print(f"[!]  Could not create interactive demo: {e}")
+        else:
+            print("\n[!]  No valid solutions available for interactive demo")
+
+        print("\n*** Next steps:")
+        print("   - Check benchmark_plots.png for visual analysis")
+        print("   - Interactive visualization shows assembly line flow")
+        print("   - Use time slider to explore different time periods")
+        print("   - Red borders indicate constraint violations")
+        print("   - Try different instance/station configurations")
 
     except ImportError:
         print("\n❌ Error: Solver not implemented yet!")

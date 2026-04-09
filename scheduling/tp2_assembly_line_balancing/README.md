@@ -6,148 +6,399 @@ This practical work (TP) focuses on a simplified variant of Assembly Line Balanc
 - **SALBP-2** (Simple Assembly Line Balancing - Type 2): Minimize cycle time with fixed stations
 - **Resource constraints**: Tasks consume resources that are allocated to workstations
 
-Unlike the full RC-ALBP/L problem (with learning effects), this version focuses on the core scheduling and resource allocation challenges.
 
 ## The Assembly Line Concept
 
 ### Why "Cycle Time" Matters
 
-An assembly line is **repetitive** - products (e.g., aircraft, cars) flow through stations continuously. Every **cycle time** units, a new product enters the line:
+An assembly line is **repetitive** - products (e.g., aircraft, cars) flow through stations continuously.
 
-```
-TIME ──────────────────────────────────────────────────────────────────►
+**Key concept:** At any moment in time, **multiple products are being worked on simultaneously**, each at a different station. Every **cycle time** units, all products shift one station to the right: a new product enters, and a finished product exits.
 
-Cycle 1:     |◄── Cycle Time = 15 ──►|
-             ✈️ enters                ✈️ exits
-             Station_A → Station_B → Station_C
+**The bottleneck station determines the cycle time** - all stations must finish their work within this time window before the next shift happens.
 
-Cycle 2:                             |◄── Cycle Time = 15 ──►|
-                                     ✈️ enters                ✈️ exits
-                                     Station_A → Station_B → Station_C
+### Visual Example: Aircraft Assembly Line Flow
 
-Cycle 3:                                                     |◄── CT = 15 ──►|
-                                                             ✈️ enters        ...
-```
+**Step 1 - Understanding the flow (3 stations, cycle time = 9):**
 
-**The bottleneck station determines the cycle time** - all stations must finish within this time window before the next product arrives.
+<table>
+<tr><th colspan="3">Period 0 (t=0 to t=9)</th></tr>
+<tr>
+  <td align="center"><b>Station A</b><br/>✈️1<br/>(9 time)</td>
+  <td align="center"><b>Station B</b><br/>✈️2<br/>(8 time)</td>
+  <td align="center"><b>Station C</b><br/>✈️3<br/>(6 time)</td>
+</tr>
+<tr><td colspan="3" align="center">← <b>3 aircraft in parallel</b> →</td></tr>
+</table>
 
-### Visual Example: Aircraft Assembly
+**After 9 time units → SHIFT RIGHT → New aircraft enters, Finished aircraft exits**
 
-```
-                     ASSEMBLY LINE (3 Stations, Cycle Time = 10)
+<table>
+<tr><th colspan="3">Period 1 (t=9 to t=18)</th></tr>
+<tr>
+  <td align="center"><b>Station A</b><br/>✈️4<br/>(new!)</td>
+  <td align="center"><b>Station B</b><br/>✈️1<br/>(moved →)</td>
+  <td align="center"><b>Station C</b><br/>✈️2<br/>(moved →)</td>
+</tr>
+<tr><td colspan="3" align="center">← <b>Everything shifted right!</b> → ✈️3 DONE! ✓</td></tr>
+</table>
 
-  t=0         t=10        t=20        t=30        t=40
-   │           │           │           │           │
-   ✈️1         ✈️2         ✈️3         ✈️4         ✈️5
-   │           │           │           │           │
-   ▼           ▼           ▼           ▼           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│  Station_A: [Prepare: 5] [Cut: 4]  ────────────── Total: 9     │
-│             ▓▓▓▓▓████                                           │
-│                                                                 │
-│  Station_B: [Assemble: 3] [Join: 3] [Test: 2] ─── Total: 8     │
-│             ▓▓▓███▓▓                                            │
-│                                                                 │
-│  Station_C: [Package: 6] ──────────────────────── Total: 6     │
-│             ▓▓▓▓▓▓                                              │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-              0         5         10        15        20
-              └─────────┴─────────┴─────────┴─────────┘
-                     Time within cycle
+<table>
+<tr><th colspan="3">Period 2 (t=18 to t=27)</th></tr>
+<tr>
+  <td align="center"><b>Station A</b><br/>✈️5<br/>(new!)</td>
+  <td align="center"><b>Station B</b><br/>✈️4<br/>(moved →)</td>
+  <td align="center"><b>Station C</b><br/>✈️1<br/>(moved →)</td>
+</tr>
+<tr><td colspan="3" align="center">← <b>Continuous flow</b> → ✈️2 DONE! ✓</td></tr>
+</table>
 
-Legend: ▓ = Task execution
-        Cycle Time = max(9, 8, 6) = 10 (rounded up)
-        Throughput = 1 aircraft / 10 time units
-```
+**Step 2 - What happens INSIDE each station during one cycle (t=0 to t=9):**
+
+<table border="1">
+<tr>
+  <th>Station A (working on ✈️1)</th>
+  <th>t=0</th><th>t=1</th><th>t=2</th><th>t=3</th><th>t=4</th>
+  <th>t=5</th><th>t=6</th><th>t=7</th><th>t=8</th>
+</tr>
+<tr>
+  <td><b>Prepare</b> (5 units)</td>
+  <td bgcolor="#99ccff"><b>Prepare</b></td>
+  <td bgcolor="#99ccff"><b>Prepare</b></td>
+  <td bgcolor="#99ccff"><b>Prepare</b></td>
+  <td bgcolor="#99ccff"><b>Prepare</b></td>
+  <td bgcolor="#99ccff"><b>Prepare</b></td>
+  <td>—</td><td>—</td><td>—</td><td>—</td>
+</tr>
+<tr>
+  <td><b>Cut</b> (4 units)</td>
+  <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+</tr>
+<tr><td colspan="10"><b>Total: 9 time units</b> (sequential - precedence constraint: Prepare → Cut)</td></tr>
+</table>
+
+<table border="1">
+<tr>
+  <th>Station B (working on ✈️2)</th>
+  <th>t=0</th><th>t=1</th><th>t=2</th><th>t=3</th><th>t=4</th>
+  <th>t=5</th><th>t=6</th><th>t=7</th><th>t=8</th>
+</tr>
+<tr>
+  <td><b>Assemble</b> (3 units)</td>
+  <td bgcolor="#99ccff"><b>Assemble</b></td>
+  <td bgcolor="#99ccff"><b>Assemble</b></td>
+  <td bgcolor="#99ccff"><b>Assemble</b></td>
+  <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+</tr>
+<tr>
+  <td><b>Join</b> (3 units)</td>
+  <td>—</td><td>—</td><td>—</td>
+  <td bgcolor="#ffcc99"><b>Join</b></td>
+  <td bgcolor="#ffcc99"><b>Join</b></td>
+  <td bgcolor="#ffcc99"><b>Join</b></td>
+  <td>—</td><td>—</td><td>—</td>
+</tr>
+<tr>
+  <td><b>Test</b> (2 units)</td>
+  <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+  <td bgcolor="#b3ff99"><b>Test</b></td>
+  <td bgcolor="#b3ff99"><b>Test</b></td>
+  <td>—</td>
+</tr>
+<tr><td colspan="10"><b>Total: 8 time units</b> (1 idle unit) - sequential due to precedences</td></tr>
+</table>
+
+<table border="1">
+<tr>
+  <th>Station C (working on ✈️3)</th>
+  <th>t=0</th><th>t=1</th><th>t=2</th><th>t=3</th><th>t=4</th>
+  <th>t=5</th><th>t=6</th><th>t=7</th><th>t=8</th>
+</tr>
+<tr>
+  <td><b>Package</b> (6 units)</td>
+  <td bgcolor="#99ccff"><b>Package</b></td>
+  <td bgcolor="#99ccff"><b>Package</b></td>
+  <td bgcolor="#99ccff"><b>Package</b></td>
+  <td bgcolor="#99ccff"><b>Package</b></td>
+  <td bgcolor="#99ccff"><b>Package</b></td>
+  <td bgcolor="#99ccff"><b>Package</b></td>
+  <td>—</td><td>—</td><td>—</td>
+</tr>
+<tr><td colspan="10"><b>Total: 6 time units</b> (3 idle units)</td></tr>
+</table>
+
+**Result:** Cycle Time = max(9, 8, 6) = **9 time units**
+**Throughput:** 1 aircraft every 9 time units
+
+**Key insight:** The assembly line is a **pipeline**. Once in steady state, you complete one aircraft every 9 time units (the cycle time), even though each aircraft takes 27 time units total to fully complete (passing through 3 stations × 9 time units per cycle).
+
+**Important:** Tasks shown above are sequential due to precedence constraints. However, **tasks CAN overlap** if:
+- ✓ No precedence constraint between them
+- ✓ Combined resource usage ≤ station capacity
+
+*Example:* If Station_B had two independent tasks "Polish" (2 units, 1 Worker) and "Label" (2 units, 1 Worker), and the station has 2 Workers, they could run in parallel from t=0 to t=2, completing in 2 time units instead of 4!
 
 ### The Optimization Problem
 
-```
-GOAL: Minimize Cycle Time (maximize throughput)
+<table border="1">
+<tr bgcolor="#e6f7ff"><th colspan="2" style="color:black"><b>🎯 OPTIMIZATION GOAL</b></th></tr>
+<tr>
+  <td><b>Objective</b></td>
+  <td><b>Minimize Cycle Time</b> (maximize throughput)</td>
+</tr>
+<tr>
+  <td><b>Decision Variables</b></td>
+  <td>
+    1. <b>Allocation decisions:</b> Assignment of tasks to stations<br>
+    2. <b>Temporal decisions:</b> Timing of task execution
+  </td>
+</tr>
+</table>
 
-DECISION:
-  1. Assign tasks to stations
-  2. Schedule tasks within each station
+<table border="1">
+<tr bgcolor="#fff7e6"><th colspan="2" style="color:black"><b>⚙️ CONSTRAINTS</b></th></tr>
+<tr>
+  <td><b>1. Precedence</b></td>
+  <td>
+    If task A → task B in precedence graph:<br>
+    • Station precedence: station[A] ≤ station[B]<br>
+    • Temporal precedence (same station): end[A] ≤ start[B]
+  </td>
+</tr>
+<tr>
+  <td><b>2. Resources</b></td>
+  <td>
+    Cumulative resource capacity per station:<br>
+    At any time t, sum of resources used by active tasks ≤ station capacity<br>
+    <b>⭐ Tasks CAN overlap if combined resource usage stays within limits!</b>
+  </td>
+</tr>
+</table>
 
-CONSTRAINTS:
-  ✓ Precedence: "Prepare" before "Assemble", etc.
-  ✓ Resources: Worker/Tool capacity per station
-  ✓ No overlap: Tasks on same station can't overlap
+**Example Comparison:**
 
-EXAMPLE - Bad Balancing:
-  Station_A: 15 time units  ←── BOTTLENECK! 💥
-  Station_B: 5 time units
-  Station_C: 3 time units
-  → Cycle Time = 15 (Stations B & C are idle!)
+<table border="1">
+<tr>
+  <th>Scenario</th>
+  <th>Station A</th>
+  <th>Station B</th>
+  <th>Station C</th>
+  <th>Cycle Time</th>
+  <th>Result</th>
+</tr>
+<tr bgcolor="#ffe6e6">
+  <td style="color:black"><b>❌ Bad Balancing</b></td>
+  <td style="color:black"><b>15 time units<br>← BOTTLENECK!</b></td>
+  <td style="color:black"><b>5 time units<br>(10 idle)</b></td>
+  <td style="color:black"><b>3 time units<br>(12 idle)</b></td>
+  <td style="color:black"><b>15</b></td>
+  <td style="color:black"><b>Poor utilization<br>Low throughput</b></td>
+</tr>
+<tr bgcolor="#e6f7ff">
+  <td style="color:black"><b>✓ Good Balancing</b></td>
+  <td style="color:black"><b>10 time units</b></td>
+  <td style="color:black"><b>9 time units</b></td>
+  <td style="color:black"><b>10 time units</b></td>
+  <td style="color:black"><b>10</b></td>
+  <td style="color:black"><b>Well balanced<br>Higher throughput</b></td>
+</tr>
+<tr bgcolor="#e6ffe6">
+  <td style="color:black"><b>✓ With Task Overlap</b></td>
+  <td style="color:black"><b>8 time units<br>(2 tasks parallel)</b></td>
+  <td style="color:black"><b>7 time units<br>(overlap allowed)</b></td>
+  <td style="color:black"><b>8 time units</b></td>
+  <td style="color:black"><b>8</b></td>
+  <td style="color:black"><b>Best! Overlapping<br>independent tasks</b></td>
+</tr>
+</table>
 
-EXAMPLE - Good Balancing:
-  Station_A: 10 time units
-  Station_B: 9 time units   ←── Well balanced! ✓
-  Station_C: 10 time units
-  → Cycle Time = 10 (All stations utilized!)
-```
+**Key Insight:** By allowing tasks to overlap (when resources permit and no precedence conflicts), you can achieve even better cycle times than sequential execution!
 
 ### Precedence Constraints
 
 Tasks must respect **two types** of precedence:
 
-```
-1. STATION PRECEDENCE (Between stations):
+**1. STATION PRECEDENCE (Between stations):**
 
-   Station_A        Station_B        Station_C
-   ┌──────┐        ┌──────┐        ┌──────┐
-   │Prepare├───────►│Assemble├──────►│Test  │
-   └──────┘        └──────┘        └──────┘
+<table border="1">
+<tr>
+  <th>Station A</th>
+  <th></th>
+  <th>Station B</th>
+  <th></th>
+  <th>Station C</th>
+</tr>
+<tr align="center">
+  <td><b>Prepare</b></td>
+  <td>→</td>
+  <td><b>Assemble</b></td>
+  <td>→</td>
+  <td><b>Test</b></td>
+</tr>
+</table>
 
-   Rule: If task A in Station 1, task B in Station 2,
-         and A → B in precedence graph,
-         then Station 1 must be before Station 2
+**Rule:** If task A → task B in precedence graph, and they are assigned to different stations, then `station[A] ≤ station[B]`
 
-2. TEMPORAL PRECEDENCE (Within same station):
+This ensures tasks flow forward through the assembly line.
 
-   Station_A (time axis →)
-   ┌─────────────────────────────┐
-   │ [Prepare]──→[Cut]           │
-   │  0─────5    5───9           │
-   └─────────────────────────────┘
+**2. TEMPORAL PRECEDENCE (Within same station):**
 
-   Rule: If tasks A and B on same station,
-         and A → B in precedence graph,
-         then end_time(A) ≤ start_time(B)
-```
+<table border="1">
+<tr>
+  <th colspan="10">Station A (time axis →)</th>
+</tr>
+<tr align="center">
+  <td colspan="5"><b>Prepare</b></td>
+  <td colspan="4"><b>Cut</b></td>
+  <td></td>
+</tr>
+<tr align="center">
+  <td>0</td>
+  <td>1</td>
+  <td>2</td>
+  <td>3</td>
+  <td>4</td>
+  <td>5</td>
+  <td>6</td>
+  <td>7</td>
+  <td>8</td>
+  <td>9</td>
+</tr>
+</table>
+
+**Rule:** If tasks A and B are on the **same station** AND A → B in precedence graph, then `end_time[A] ≤ start_time[B]`
+
+This prevents overlapping tasks that have dependencies.
 
 ### Resource Constraints
 
 Each station has **pre-allocated resources**, tasks consume resources:
 
-```
-RESOURCES PER STATION:
-┌────────────┬─────────┬──────┐
-│ Station    │ Worker  │ Tool │
-├────────────┼─────────┼──────┤
-│ Station_A  │    3    │   2  │
-│ Station_B  │    2    │   3  │
-└────────────┴─────────┴──────┘
+<table border="1">
+<tr bgcolor="#e6f7ff">
+  <th style="color:black"><b>Station</b></th>
+  <th style="color:black"><b>Worker Capacity</b></th>
+  <th style="color:black"><b>Tool Capacity</b></th>
+</tr>
+<tr>
+  <td><b>Station_A</b></td>
+  <td><b>3 units</b></td>
+  <td><b>2 units</b></td>
+</tr>
+<tr>
+  <td><b>Station_B</b></td>
+  <td><b>2 units</b></td>
+  <td><b>3 units</b></td>
+</tr>
+</table>
 
-TASK CONSUMPTION:
-  "Prepare": 1 Worker, 0 Tool
-  "Cut":     1 Worker, 1 Tool
+<table border="1">
+<tr bgcolor="#fff7e6">
+  <th style="color:black"><b>Task</b></th>
+  <th style="color:black"><b>Worker Consumption</b></th>
+  <th style="color:black"><b>Tool Consumption</b></th>
+</tr>
+<tr><td><b>Prepare</b></td><td><b>1</b></td><td><b>0</b></td></tr>
+<tr><td><b>Cut</b></td><td><b>1</b></td><td><b>1</b></td></tr>
+<tr><td><b>Polish</b></td><td><b>1</b></td><td><b>0</b></td></tr>
+</table>
 
-CONSTRAINT:
-  At any time t, sum of resources used by active tasks
-  on a station ≤ station's resource capacity
+**Constraint Rule:** At any time t, sum of resources used by active tasks on a station ≤ station's resource capacity
 
-Example timeline on Station_A:
-  Time: 0────5────9
-  Prepare: [1W, 0T]
-  Cut:          [1W, 1T]
+**Visual Examples:**
 
-  ✓ At t=5: Prepare ends, Cut starts (no overlap, OK)
-  ✓ If parallel: Would need 2W, 1T → Exceeds Worker capacity! ✗
-```
+<table border="1">
+<tr><th colspan="11">Example 1: Sequential Execution (Station has 1 Worker, 1 Tool)</th></tr>
+<tr>
+  <td><b>Task</b></td>
+  <td><b>t=0</b></td><td><b>t=1</b></td><td><b>t=2</b></td><td><b>t=3</b></td><td><b>t=4</b></td>
+  <td><b>t=5</b></td><td><b>t=6</b></td><td><b>t=7</b></td><td><b>t=8</b></td><td><b>Result</b></td>
+</tr>
+<tr>
+  <td>Prepare [1W,0T]</td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td>—</td><td>—</td><td>—</td><td>—</td>
+  <td>✓ OK</td>
+</tr>
+<tr>
+  <td>Cut [1W,1T]</td>
+  <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td>✓ OK</td>
+</tr>
+<tr><td colspan="11"><b>Sequential:</b> Prepare (5 units) then Cut (4 units) → Total time: 9 units</td></tr>
+</table>
 
+<table border="1">
+<tr><th colspan="11">Example 2: ❌ Same Tasks, Overlapping NOT Allowed (Still 1 Worker, 1 Tool)</th></tr>
+<tr>
+  <td><b>Task</b></td>
+  <td><b>t=0</b></td><td><b>t=1</b></td><td><b>t=2</b></td><td><b>t=3</b></td><td><b>t=4</b></td>
+  <td><b>t=5</b></td><td><b>t=6</b></td><td><b>t=7</b></td><td><b>t=8</b></td><td><b>Result</b></td>
+</tr>
+<tr>
+  <td>Prepare [1W,0T]</td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td bgcolor="#ff9999"><b>Prep</b></td>
+  <td bgcolor="#ff9999"><b>Prep</b></td>
+  <td>—</td><td>—</td><td>—</td><td>—</td>
+  <td rowspan="2" bgcolor="#ffcccc" style="color:black"><b>✗ VIOLATION!</b><br>At t=3 to t=4:<br>Need 2W, 1T<br>Have 1W, 1T</td>
+</tr>
+<tr>
+  <td>Cut [1W,1T]</td>
+  <td>—</td><td>—</td><td>—</td>
+  <td bgcolor="#ff9999"><b>Cut</b></td>
+  <td bgcolor="#ff9999"><b>Cut</b></td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td>—</td><td>—</td>
+</tr>
+<tr><td colspan="11"><b>Attempted overlap (red) → EXCEEDS Worker capacity!</b> Cannot start Cut early.</td></tr>
+</table>
+
+<table border="1">
+<tr><th colspan="11">Example 3: ✓ Same Tasks, Overlapping IS Allowed (Now 2 Workers, 1 Tool)</th></tr>
+<tr>
+  <td><b>Task</b></td>
+  <td><b>t=0</b></td><td><b>t=1</b></td><td><b>t=2</b></td><td><b>t=3</b></td><td><b>t=4</b></td>
+  <td><b>t=5</b></td><td><b>t=6</b></td><td><b>t=7</b></td><td><b>t=8</b></td><td><b>Result</b></td>
+</tr>
+<tr>
+  <td>Prepare [1W,0T]</td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td bgcolor="#99ccff"><b>Prep</b></td>
+  <td bgcolor="#99ff99"><b>Prep</b></td>
+  <td bgcolor="#99ff99"><b>Prep</b></td>
+  <td>—</td><td>—</td><td>—</td><td>—</td>
+  <td rowspan="2" bgcolor="#ccffcc" style="color:black"><b>✓ VALID!</b><br>At t=3 to t=4:<br>Need 2W, 1T<br>Have 2W, 1T</td>
+</tr>
+<tr>
+  <td>Cut [1W,1T]</td>
+  <td>—</td><td>—</td><td>—</td>
+  <td bgcolor="#99ff99"><b>Cut</b></td>
+  <td bgcolor="#99ff99"><b>Cut</b></td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td bgcolor="#ffcc99"><b>Cut</b></td>
+  <td>—</td><td>—</td>
+</tr>
+<tr><td colspan="11"><b>Parallel execution (green) → Total time: 7 units instead of 9!</b> With 2 Workers, overlap allowed.</td></tr>
+</table>
+
+**Key Takeaway:** The CP-SAT solver uses `AddCumulative` constraints to allow task overlapping when resource capacity permits, potentially reducing cycle time significantly!
 ## Problem Definition
 
 ### Given
@@ -168,7 +419,6 @@ Example timeline on Station_A:
 ### Constraints
 1. **Precedence**: Predecessor tasks must complete before successors, or allocated to a previous station
 2. **Resource capacity**: Resource consumption at each station cannot exceed allocation
-3. **No overlap**: Tasks on the same station cannot overlap in time
 
 ## Files
 
@@ -181,15 +431,24 @@ Example timeline on Station_A:
 - **`utils.py`**: Helper functions
   - `create_simple_instance()`: Generate random instances
   - `create_precedence_example()`: Small example with meaningful names
-  - `create_from_rcpsp()`: Convert RCPSP to RC-ALBP (✅ NEW!)
-  - `load_rcpsp_as_albp()`: Load realistic instances from PSPLib (✅ NEW!)
-  - `visualize_solution()`: Gantt chart visualization
+  - `create_from_rcpsp()`: Convert RCPSP to RC-ALBP with tighter resource constraints
+  - `load_rcpsp_as_albp()`: Load realistic instances from PSPLib
+  - `visualize_solution()`: Static Gantt chart visualization
+  - `visualize_interactive_flow()`: **Interactive assembly line flow animation with time slider** ✨
+    - Shows products flowing through stations over time
+    - Tracks active tasks and resource usage per station
+    - Highlights constraint violations in real-time
   - `print_solution_info()`: Detailed solution analysis
 
 ### Tutorial and Exercises
 - **`tutorial.py`**: Interactive walkthrough (run this first!)
-- **`exercises.py`**: CP-SAT solver implementation (✅ skeleton ready)
-- **`benchmark.py`**: Performance analysis on multiple instances (✅ NEW!)
+- **`exercises.py`**: CP-SAT solver implementation with interactive visualization
+- **`solutions.py`**: Complete reference implementation with visualization demo
+- **`benchmark.py`**: Comprehensive performance analysis ✨
+  - Tests multiple instances with varying station counts
+  - Generates 6 analysis plots (cycle time vs stations, solve time, optimality rates, etc.)
+  - Creates interactive flow visualization demo
+  - Exports results to CSV and PNG
 
 ## How to Run
 
@@ -293,42 +552,22 @@ Create integer variables to assign each task to a station.
 Create temporal variables for scheduling tasks within stations.
 
 ### TODO 1.3: Station Precedence Constraints
-Ensure tasks flow forward through the assembly line:
-```
-If task A → task B in precedence graph:
-  station[A] ≤ station[B]
-```
+Ensure tasks flow forward through the assembly line (predecessor stations must come before successor stations).
 
 ### TODO 1.4: Temporal Precedence (Same Station)
-If two tasks are on the same station AND have a precedence relation:
-```
-end[A] ≤ start[B]
-```
-**Hint**: Use `OnlyEnforceIf` to make this conditional!
+If two tasks are on the same station AND have a precedence relation, enforce temporal ordering between them.
 
-### TODO 1.5: Resource Constraints (⭐ Key Challenge)
+**Challenge**: How to make this constraint conditional on tasks being on the same station?
+
+### TODO 1.5: Resource Constraints (Key Challenge)
 Add cumulative constraints **per station**.
 
-**The Challenge**: How to filter tasks by station in CP model?
+**Main Challenge**: In CP-SAT, how can you apply a constraint to only the tasks assigned to a specific station, when task assignment itself is a decision variable?
 
-**Solution**: Use **optional intervals**!
-```python
-# Create interval per (task, station) pair
-# Interval is "present" only if task assigned to that station
-for task in tasks:
-    for station in stations:
-        is_assigned = (assignment[task] == station)
-        optional_interval = NewOptionalIntervalVar(
-            start[task], duration[task], end[task],
-            is_present=is_assigned,
-            name=f"interval_{task}_{station}"
-        )
-```
-
-Then use `AddCumulative` per station with only the intervals "present" at that station.
+**Hint**: Review Lesson 2 on advanced CP-SAT techniques.
 
 ### TODO 1.6: Objective Function
-Minimize the cycle time (maximum end time across all tasks).
+Define the optimization objective (what are we trying to minimize?).
 
 ### TODO 1.7: Extract Solution
 Convert CP-SAT variable values into a `RCALBPSolution` object.
@@ -353,8 +592,8 @@ By completing this TP, you will:
 
 ### From Lesson 2 (CP-SAT + Job Shop)
 - Interval variables for scheduling
-- `AddCumulative` constraint for resources
-- `AddNoOverlap` for tasks on same station
+- `AddCumulative` constraint for resources (allows overlaps!)
+- Optional intervals (new technique for this TP)
 - Precedence constraints
 
 ### From TP1 (RCPSP Practical)
@@ -421,6 +660,119 @@ The `benchmark.py` script:
 - `cycle_time`, `solve_time`, `gap_percent`
 - `is_valid`, `is_optimal`, `status`
 
+## Expected Outputs
+
+### Solver Implementation (exercises.py)
+
+**Code Requirements:**
+- Complete implementation of `RCALBPCpSatSolver` class
+- All 7 TODOs completed with working code
+- Solutions must pass `problem.satisfy(solution)` validation check
+
+**Documentation Requirements:**
+Your code should include comments explaining:
+
+**1. Variable Roles:**
+- Task assignment variables (what do they represent?)
+- Start time and interval variables (temporal decisions)
+- Optional interval variables (why optional? when are they active?)
+
+**2. Constraint Types:**
+- **Station precedence**: Purpose and formulation
+- **Temporal precedence**: When does it apply? How is it made conditional?
+- **Resource constraints per station**: The key challenge of this TP
+  - Why can't we use simple cumulative constraints like in RCPSP?
+  - How do optional intervals solve the problem?
+  - How are tasks filtered by station in the CP model?
+
+**3. Key Modeling Differences:**
+Explain how RC-ALBP differs from:
+- **RCPSP**: Fixed stations vs global resources
+- **Job Shop**: Multiple precedence types, resource allocation per station
+
+**Testing:**
+- Run on tutorial example (verify manually)
+- Test on at least one realistic instance (e.g., `load_rcpsp_as_albp('j301_1', nb_stations=3)`)
+- Verify with `problem.satisfy(solution) == True`
+- Use interactive visualization to validate task assignments and resource usage
+
+### Benchmark Analysis (benchmark.py)
+
+**Output Files:**
+- `tp2_benchmark_results.csv`: Raw experimental data
+- `benchmark_results_*.png`: Performance analysis plots
+- Interactive flow visualization demonstrating solution quality
+
+**Written Analysis:**
+Provide detailed insights on:
+
+**1. Cycle Time vs Number of Stations:**
+- How does cycle time change as you add more stations?
+- Is there a point of diminishing returns?
+- Explain the relationship between station count and cycle time
+
+**2. Solver Performance:**
+- Computation time trends across different configurations
+- Which instances are hardest to solve? Why?
+- Optimality rates: how often does CP-SAT prove optimality?
+
+**3. Resource Utilization:**
+- Using the interactive visualization, identify bottleneck stations
+- Measure idle time and balancing loss
+- Which stations are underutilized?
+
+**4. Practical Recommendations:**
+For a real assembly line manager, recommend:
+- Optimal number of stations for given instance
+- Trade-offs between cycle time and number of stations (cost vs throughput)
+- How to identify and address resource bottlenecks
+
+## Extensions for Realism
+
+Want to make this problem more realistic? Consider these extensions:
+
+### 1. Learning Effects
+Workers become faster at repetitive tasks. Model task duration reduction at later stations:
+```python
+effective_duration = base_duration * (0.95 ** station_index)
+```
+
+### 2. Worker Skills and Specialization
+Not all workers can perform all tasks. Add skill requirements:
+- Tasks require specific skills (welding, assembly, testing)
+- Stations have workers with different skill sets
+- Constraint: Task can only be assigned to station with required skills
+
+### 3. Setup Times
+Time required to switch between different task types:
+- If Task A (type: metal) followed by Task B (type: electrical), add setup time
+- Model with additional interval variables for setups
+
+### 4. Multi-Product Assembly Lines
+Handle multiple product variants on the same line:
+- Different products have different task sequences
+- Some tasks are common, some are product-specific
+- Constraint: Station must handle tasks from all products passing through
+
+### 5. Quality Gates
+Certain critical tasks (e.g., safety testing) must be performed at specific stations:
+- Fixed assignment constraints for quality-critical tasks
+- Resource requirements for inspection equipment
+
+### 6. Balancing Loss Metrics
+Quantify inefficiency:
+```python
+balancing_loss = (cycle_time * nb_stations - sum(task_times)) / (cycle_time * nb_stations)
+smoothness_index = std_dev(station_workloads) / mean(station_workloads)
+```
+
+### 7. Precedence Relaxation
+Some precedence constraints could be relaxed if tasks are independent:
+- Identify "soft" vs "hard" precedences
+- Allow parallel execution of independent sub-assemblies
+
+These extensions provide opportunities for more advanced projects or research directions.
+
 ## Next Steps
 
 1. **Run the tutorial**: `uv run python -m scheduling.tp2_assembly_line_balancing.tutorial`
@@ -438,4 +790,3 @@ The `benchmark.py` script:
 
 ---
 
-**Status**: ✅ Core framework complete, exercises pending

@@ -6,5 +6,10 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "discrete-optimization>=0.8.0",
+    "folium>=0.20.0",
+    "gymnasium>=1.2.3",
+    "marimo[recommended]>=0.23.0",
+    "pddlgym>=0.0.7",
+    "pyperplan>=2.1",
     "scikit-decide>=1.0.3",
 ]

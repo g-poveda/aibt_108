@@ -1,34 +1,26 @@
-from heapq import heappop, heappush
-from itertools import count
-from typing import Callable, Optional, List
-
 class Astar:
-    
+
     def __init__(
         self,
         graph: Graph,
-        heuristic: Optional[
-            Callable[[Graph.Node], float]
-        ] = None,
+        heuristic: Optional[Callable[[Graph.Node], float]] = None,
         verbose: bool = False,
         render: bool = False,
     ) -> None:
 
         self._graph = graph
-        self._heuristic = (
-            (lambda _: 0.0) if heuristic is None else heuristic
-        )
+        self._heuristic = (lambda _: 0.0) if heuristic is None else heuristic
         self._verbose = verbose
         self._render = render
         self._values = {}
 
     def solve_from(self, root_node: Graph.Node) -> List[Graph.Node]:
-        
+
         def extender(node, explored):
             for node, cost, label in self._graph.get_successors(node):
                 if node not in explored:
                     if self._verbose:
-                        print('New node {}'.format(str(node)))
+                        print("New node {}".format(str(node)))
                     yield (
                         node,
                         cost,
@@ -51,9 +43,7 @@ class Astar:
         # Maps enqueued nodes to distance of discovered paths and the
         # computed heuristics to target. We avoid computing the heuristics
         # more than once and inserting the node into the queue too many times.
-        enqueued = {
-            root_node: (0, self._heuristic(root_node))
-        }
+        enqueued = {root_node: (0, self._heuristic(root_node))}
         queue = [
             (enqueued[root_node][1], next(c), root_node, 0, initial_label[root_node])
         ]
